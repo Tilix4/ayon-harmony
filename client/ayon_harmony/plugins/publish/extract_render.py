@@ -103,7 +103,10 @@ class ExtractRender(pyblish.api.InstancePlugin):
             # If there is only one collection, use it
             collection = collections[0]
 
-        self.log.debug(f"Selected collection: {collection} with {len(collection.indexes)} files")
+        self.log.debug(
+            f"Selected collection: {collection} "
+            f"with {len(collection.indexes)} files"
+        )
 
         # Generate representations
         extension = collection.tail[1:]
