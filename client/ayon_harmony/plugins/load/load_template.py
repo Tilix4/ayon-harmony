@@ -80,15 +80,15 @@ class TemplateLoader(harmony.BackdropBaseLoader):
             context,
             self_name
         )
-    
+
     def metadata_to_note(self, backdrop_name, data, context):
         """Create a note node and write metadata to that node.
 
-        Args: 
+        Args:
             backdrop_name (str): Name of the backdrop to which the note will be attached.
             data (dict): Metadata to be stored in the note.
             context (:class:`pyblish.api.Context`): The context containing representation information.
-        
+
         """
 
         harmony.send(
@@ -108,5 +108,3 @@ class TemplateLoader(harmony.BackdropBaseLoader):
         """
             }
         )
-
-
