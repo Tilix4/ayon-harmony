@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 import logging
-
+import ast
 import pyblish.api
 
 from ayon_core.lib import register_event_callback
@@ -243,10 +243,41 @@ def is_container_data(data: dict) -> bool:
     return data and data.get("id") in {AYON_CONTAINER_ID, AVALON_CONTAINER_ID}
 
 
+def read_metadata_from_notes() -> dict:
+    """Read metadata of templates from note nodes and return them as a dictionary.
+
+    Returns:
+        dict: Dictionary with metadata.
+    """
+
+    func = """function returnNodeAttr() {
+    var nodes = node.getNodes(["NOTE"]);
+    var results = [];
+    for (var i = 0; i < nodes.length; i++) {
+        if (nodes[i].indexOf("ayon-metadata") !== -1) {
+            var data = node.getTextAttr(nodes[i], 1.0, "text");
+            results.push(data);
+            }
+        }
+        return results;
+    }
+    returnNodeAttr"""
+
+    metadata_list = harmony.send({"function": func})["result"]
+
+    metadata_dict = {}
+    for note in metadata_list:
+        metadata_dict |= ast.literal_eval(note)
+
+    return metadata_dict
+
+
 def ls():
     """Yields containers from Harmony scene.
 
     Clean up scene data from orphaned containers.
+
+    Look for note nodes with metadata and add them to scene data if not registered.
 
     Yields:
         dict: container
@@ -255,7 +286,8 @@ def ls():
     containers_names = (
         harmony.get_all_top_names() | harmony.get_palettes_paths()
     )
-    cleaned_scene_data = False
+
+    updated_scene_data = False
     for entity_name, entity_data in scene_data.copy().items():
         if not is_container_data(entity_data):
             continue
@@ -263,15 +295,22 @@ def ls():
         # Filter orphaned containers
         if entity_name not in containers_names:
             del scene_data[entity_name]
-            cleaned_scene_data = True
+            updated_scene_data = True
             continue
 
         if not entity_data.get("objectName"):  # backward compatibility
             entity_data["objectName"] = entity_data["name"]
         yield entity_data
 
-    # Update scene data if cleaned
-    if cleaned_scene_data:
+    metadata = read_metadata_from_notes()
+
+    for entity_name, entity_data in metadata.items():
+        if entity_name not in scene_data:
+            updated_scene_data = True
+            scene_data[entity_name] = entity_data
+        yield entity_data
+
+    if updated_scene_data:
         harmony.set_scene_data(scene_data)
 
 
