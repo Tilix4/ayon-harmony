@@ -568,6 +568,8 @@ AyonHarmony.preventOverlap = function(
         occupiedRects.push(rect);
     });
 
+    var slotWidth = contentWidth + PARENT_BACKDROP_GRID_GAP;
+    var slotHeight = contentHeight + PARENT_BACKDROP_GRID_GAP;
     var candidateLeft = areaRect ? usable.left : bounds.left;
     var candidateTop = areaRect ? usable.top : bounds.top;
     var maxRight = -Infinity;
