@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 """Package declaring AYON addon 'harmony' version."""
-__version__ = "0.5.0+normaal.0.8"
+__version__ = "0.5.0+normaal.0.9"
