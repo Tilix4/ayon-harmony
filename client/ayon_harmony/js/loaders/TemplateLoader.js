@@ -166,7 +166,11 @@ TemplateLoader.prototype.loadContainer = function(args) {
         $.cancelUndo();
         throw _err;
     }
-    $.endUndo();
+    try {
+        $.endUndo();
+    } catch (_endErr) {
+        // Scene data is already committed; safe to ignore.
+    }
 
     return mainBackdropName;
 };
