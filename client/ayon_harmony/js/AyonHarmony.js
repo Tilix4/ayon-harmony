@@ -993,73 +993,80 @@ AyonHarmony.switchContainer = function(args) {
     var oldY          = backdrop.position.y;
     var backdropLinks = AyonHarmony.getBackdropLinks(backdrop);
 
-    // Capture attribute snapshots before removing the old container.
-    var nodeSnapshots = {};
-    function collectSnapshots(paths) {
-        paths.forEach(function(p) {
-            var oN = $.scene.getNodeByPath(p);
-            if (oN) nodeSnapshots[p] = oN.getAttributeSnapshot();
-            var subs = node.subNodes(p);
-            if (subs && subs.length > 0) collectSnapshots(subs);
-        });
-    }
-    collectSnapshots(Backdrop.nodes(backdrop));
-
-    // Swap container.
-    AyonHarmony.removeBackdrop([backdrop, true]);
-    var newBackdropName = AyonHarmony.Loaders[loaderName].loadContainer(
-        [templatePath, overrideName, parentBackdropName]
-    );
-
-    var newBackdrop = AyonHarmony.findParentBackdrop(newBackdropName);
-    if (newBackdrop) {
-        // Restore attribute snapshots.
-        function applySnapshots(paths) {
+    // Batch the whole swap into one undo step. Suppresses per-call UI redraws
+    // and Function/Timeline/Network refreshes
+    scene.beginUndoRedoAccum("AYON: switch container");
+    var newBackdropName = "";
+    try {
+        var nodeSnapshots = {};
+        function collectSnapshots(paths) {
             paths.forEach(function(p) {
-                if (nodeSnapshots[p]) {
-                    var oN = $.scene.getNodeByPath(p);
-                    if (oN) oN.applyAttributeSnapshot(nodeSnapshots[p]);
-                }
+                var oN = $.scene.getNodeByPath(p);
+                if (oN) nodeSnapshots[p] = oN.getAttributeSnapshot();
                 var subs = node.subNodes(p);
-                if (subs && subs.length > 0) applySnapshots(subs);
+                if (subs && subs.length > 0) collectSnapshots(subs);
             });
         }
-        applySnapshots(Backdrop.nodes(newBackdrop));
+        collectSnapshots(Backdrop.nodes(backdrop));
 
-        // Shift the newly loaded content to where the old backdrop was.
-        var dx = oldX - newBackdrop.position.x;
-        var dy = oldY - newBackdrop.position.y;
-        if (dx !== 0 || dy !== 0) {
-            Backdrop.nodes(newBackdrop).forEach(function(nodePath) {
-                node.setCoord(
-                    nodePath,
-                    node.coordX(nodePath) + dx,
-                    node.coordY(nodePath) + dy
-                );
-            });
-            var subBackdrops = AyonHarmony.getSubBackdrops(newBackdrop);
-            var allBackdrops = Backdrop.backdrops("Top");
-            allBackdrops.forEach(function(b) {
-                if (b.title.text === newBackdropName) {
-                    b.position.x += dx;
-                    b.position.y += dy;
-                    return;
-                }
-                for (var i = 0; i < subBackdrops.length; i++) {
-                    if (b.title.text === subBackdrops[i].title.text
-                        && b.position.x === subBackdrops[i].position.x
-                        && b.position.y === subBackdrops[i].position.y) {
+        AyonHarmony.removeBackdrop([backdrop, true]);
+        newBackdropName = AyonHarmony.Loaders[loaderName].loadContainer(
+            [templatePath, overrideName, parentBackdropName]
+        );
+
+        var newBackdrop = AyonHarmony.findParentBackdrop(newBackdropName);
+        if (newBackdrop) {
+            function applySnapshots(paths) {
+                paths.forEach(function(p) {
+                    if (nodeSnapshots[p]) {
+                        var oN = $.scene.getNodeByPath(p);
+                        if (oN) oN.applyAttributeSnapshot(nodeSnapshots[p]);
+                    }
+                    var subs = node.subNodes(p);
+                    if (subs && subs.length > 0) applySnapshots(subs);
+                });
+            }
+            applySnapshots(Backdrop.nodes(newBackdrop));
+
+            // Shift the newly loaded content to where the old backdrop was.
+            var dx = oldX - newBackdrop.position.x;
+            var dy = oldY - newBackdrop.position.y;
+            if (dx !== 0 || dy !== 0) {
+                Backdrop.nodes(newBackdrop).forEach(function(nodePath) {
+                    node.setCoord(
+                        nodePath,
+                        node.coordX(nodePath) + dx,
+                        node.coordY(nodePath) + dy
+                    );
+                });
+                var subBackdrops = AyonHarmony.getSubBackdrops(newBackdrop);
+                var allBackdrops = Backdrop.backdrops("Top");
+                allBackdrops.forEach(function(b) {
+                    if (b.title.text === newBackdropName) {
                         b.position.x += dx;
                         b.position.y += dy;
-                        break;
+                        return;
                     }
-                }
-            });
-            Backdrop.setBackdrops("Top", allBackdrops);
+                    for (var i = 0; i < subBackdrops.length; i++) {
+                        if (b.title.text === subBackdrops[i].title.text
+                            && b.position.x === subBackdrops[i].position.x
+                            && b.position.y === subBackdrops[i].position.y) {
+                            b.position.x += dx;
+                            b.position.y += dy;
+                            break;
+                        }
+                    }
+                });
+                Backdrop.setBackdrops("Top", allBackdrops);
+            }
         }
-    }
 
-    AyonHarmony.setNodesLinks(backdropLinks);
+        AyonHarmony.setNodesLinks(backdropLinks);
+    } finally {
+        // Same Harmony `wid.data()` UI bug as in TemplateLoader; scene data is
+        // committed regardless of whether the UI close-out succeeds.
+        try { scene.endUndoRedoAccum(); } catch (_endAccumErr) {}
+    }
     return newBackdropName;
 };
 
