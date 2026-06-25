@@ -188,7 +188,7 @@ def check_inventory():
 
     # Warn about outdated containers.
     msg = "There are outdated containers in the scene."
-    harmony.send({"function": "AyonHarmony.message", "args": msg})
+    # harmony.send({"function": "AyonHarmony.message", "args": msg})
 
 
 def application_launch(event):
