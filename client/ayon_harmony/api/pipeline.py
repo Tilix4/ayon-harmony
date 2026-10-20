@@ -2,9 +2,16 @@ import os
 from pathlib import Path
 import logging
 
+from qtpy import QtWidgets
+
+from ayon_core import style
+from ayon_core.tools.utils.host_tools import (
+    show_scene_inventory,
+    show_workfiles,
+)
 import pyblish.api
 
-from ayon_core.lib import register_event_callback
+from ayon_core.lib import is_headless_mode_enabled, register_event_callback
 from ayon_core.host import (
     HostBase,
     IWorkfileHost,
@@ -20,12 +27,19 @@ from ayon_core.pipeline import (
     AYON_CONTAINER_ID,
 )
 from ayon_core.pipeline.load import get_outdated_containers
-from ayon_core.pipeline.context_tools import get_current_task_entity
+from ayon_core.pipeline.context_tools import (
+    get_current_task_entity,
+)
 
 from ayon_harmony import HARMONY_ADDON_ROOT
 import ayon_harmony.api as harmony
 
-from .lib import get_scene_data, set_scene_data
+from .lib import (
+    ProcessContext,
+    get_scene_data,
+    set_scene_data,
+    is_temp_workfile,
+)
 from .workio import (
     open_file,
     save_file,
@@ -166,11 +180,68 @@ def ensure_scene_settings():
     set_scene_settings(valid_settings)
 
 
+def _prompt_simple_choice(
+    title, text, accept_label, reject_label, informative_text=None
+):
+    """Show a modal warning dialog with two choices.
+
+    Returns:
+        bool: True if the accept button was clicked, False otherwise
+            (including when skipped in headless mode).
+    """
+    if is_headless_mode_enabled():
+        return False
+
+    msg_box = QtWidgets.QMessageBox()
+    msg_box.setStyleSheet(style.load_stylesheet())
+    msg_box.setIcon(QtWidgets.QMessageBox.Warning)
+    msg_box.setWindowTitle(title)
+    msg_box.setText(text)
+    if informative_text:
+        msg_box.setInformativeText(informative_text)
+
+    accept_button = msg_box.addButton(
+        accept_label, QtWidgets.QMessageBox.AcceptRole
+    )
+    msg_box.addButton(reject_label, QtWidgets.QMessageBox.RejectRole)
+    msg_box.setDefaultButton(accept_button)
+    msg_box.setModal(True)
+    msg_box.exec_()
+
+    return msg_box.clickedButton() == accept_button
+
+
+def prompt_outdated_containers():
+    """Show outdated containers warning with option to open Scene Inventory."""
+    if _prompt_simple_choice(
+        title="Outdated Containers",
+        text="There are outdated containers in the scene.",
+        accept_label="Manage",
+        reject_label="Dismiss",
+    ):
+        show_scene_inventory()
+
+
+def prompt_new_workfile():
+    """Prompt user that they are working on the temporary workfile."""
+    if _prompt_simple_choice(
+        title="New Workfile",
+        text="You are working on a new, unsaved workfile.",
+        accept_label="Open Workfiles Window",
+        reject_label="Ignore",
+        informative_text=(
+            "Open the Workfiles window to save it, or continue working "
+            "on the temporary scene."
+        ),
+    ):
+        show_workfiles(save=True)
+
+
 def check_inventory():
     """Check is scene contains outdated containers.
 
-    If it does it will colorize outdated nodes and display warning message
-    in Harmony.
+    If it does it will colorize outdated nodes and optionally display a
+    warning dialog.
     """
 
     outdated_containers = get_outdated_containers()
@@ -186,9 +257,7 @@ def check_inventory():
             )
     harmony.send({"function": "AyonHarmony.setColor", "args": outdated_nodes})
 
-    # Warn about outdated containers.
-    msg = "There are outdated containers in the scene."
-    harmony.send({"function": "AyonHarmony.message", "args": msg})
+    ProcessContext.execute_in_main_thread(prompt_outdated_containers)
 
 
 def application_launch(event):
@@ -211,6 +280,9 @@ def application_launch(event):
 
     # ensure_scene_settings()
     check_inventory()
+
+    if is_temp_workfile(ProcessContext.workfile_path):
+        ProcessContext.execute_in_main_thread(prompt_new_workfile())
 
 
 def export_backdrop_as_template(backdrop, filepath):
@@ -308,7 +380,8 @@ def containerise(name,
         "namespace": namespace,
         "loader": str(loader),
         "representation": context["representation"]["id"],
-        "nodes": nodes
+        "nodes": nodes,
+        "project_name": context["project"]["name"],
     }
 
     harmony.imprint(node, data)
