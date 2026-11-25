@@ -945,6 +945,39 @@ def get_all_top_names() -> set:
     return set(nodes) | backdrops
 
 
+def get_backdrop_top_nodes(backdrop_name: str) -> list[str]:
+    """Get full paths of the top-level nodes contained in a backdrop.
+
+    Args:
+        backdrop_name (str): Title of the backdrop.
+
+    Returns:
+        list[str]: Full ``Top/...`` node paths.
+    """
+    backdrop = find_backdrop_by_name(backdrop_name)
+    if not backdrop:
+        return []
+    return send({"function": "Backdrop.nodes", "args": backdrop})["result"]
+
+
+def parse_node_suffix(name: str) -> tuple[str, int]:
+    """Split a node name into its base name and duplication suffix.
+
+    A trailing ``_N`` (positive integer without leading zeros) is treated as
+    a duplication suffix, the first copy being suffixless (0).
+
+    Args:
+        name (str): Node name.
+
+    Returns:
+        tuple[str, int]: Base name and suffix.
+    """
+    base, _, suffix = name.rpartition("_")
+    if base and suffix.isdigit() and str(int(suffix)) == suffix:
+        return base, int(suffix)
+    return name, 0
+
+
 def get_palettes_paths() -> set:
     """Get all palettes paths in the scene.
 

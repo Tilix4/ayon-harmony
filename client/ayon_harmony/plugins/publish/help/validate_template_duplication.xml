@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+<error id="main">
+<title>Template duplication suffixes</title>
+<description>
+## Invalid template node suffixes
+
+Loaded templates sharing the same representation are copies of each other.
+Their top node names must follow the duplication numbering: the first copy is
+suffixless, the next is `_1`, then `_2`, and so on.
+
+{invalid_nodes}
+
+### How to repair?
+
+Use the `Repair` button on the right. It renumbers the top nodes of each loaded
+template so their suffixes are contiguous and removes any extra copies beyond
+the number of loaded templates.
+</description>
+</error>
+</root>

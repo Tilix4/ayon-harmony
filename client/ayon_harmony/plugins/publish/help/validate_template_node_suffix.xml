@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+<error id="main">
+<title>Template node suffixes</title>
+<description>
+## Inconsistent template node suffixes
+
+A single template contains top nodes sharing the same base name with different
+suffixes, for example both `head` and `head_1`.
+
+{invalid_nodes}
+
+### How to repair?
+
+Use the `Repair` button on the right. It keeps the node matching the template
+backdrop suffix and removes the other copies sharing the same base name.
+</description>
+</error>
+</root>

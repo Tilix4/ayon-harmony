@@ -141,6 +141,16 @@ DEFAULT_HARMONY_SETTING = {
             "optional": True,
             "active": True
         },
+        "ValidateTemplateDuplication": {
+            "enabled": True,
+            "optional": True,
+            "active": True
+        },
+        "ValidateTemplateNodeSuffix": {
+            "enabled": True,
+            "optional": True,
+            "active": True
+        },
         "ExtractConvertToEXR": {
             "enabled": False,
             "replace_pngs": True,

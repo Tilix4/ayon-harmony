@@ -57,6 +57,21 @@ class ValidatePaletteLocationPlugin(BaseSettingsModel):
     active: bool = SettingsField(True, title="Active")
 
 
+class ValidateTemplateDuplicationPlugin(BaseSettingsModel):
+    """Validate loaded template node suffixes match duplication count."""
+    enabled: bool = True
+    optional: bool = SettingsField(True, title="Optional")
+    active: bool = SettingsField(True, title="Active")
+
+
+class ValidateTemplateNodeSuffixPlugin(BaseSettingsModel):
+    """Validate no template top node shares a base name with different
+    suffixes."""
+    enabled: bool = True
+    optional: bool = SettingsField(True, title="Optional")
+    active: bool = SettingsField(True, title="Active")
+
+
 def compression_enum():
     return [
         {"value": "ZIP", "label": "ZIP"},
@@ -142,6 +157,20 @@ class HarmonyPublishPlugins(BaseSettingsModel):
     ValidatePaletteLocation: ValidatePaletteLocationPlugin = SettingsField(
         title="Validate Palette Location",
         default_factory=ValidatePaletteLocationPlugin,
+    )
+
+    ValidateTemplateDuplication: ValidateTemplateDuplicationPlugin = (
+        SettingsField(
+            title="Validate Template Duplication",
+            default_factory=ValidateTemplateDuplicationPlugin,
+        )
+    )
+
+    ValidateTemplateNodeSuffix: ValidateTemplateNodeSuffixPlugin = (
+        SettingsField(
+            title="Validate Template Node Suffix",
+            default_factory=ValidateTemplateNodeSuffixPlugin,
+        )
     )
 
     ExtractConvertToEXR: ExtractConvertToEXRModel = SettingsField(

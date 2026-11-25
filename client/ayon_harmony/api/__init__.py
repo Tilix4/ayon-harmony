@@ -36,6 +36,8 @@ from .lib import (
     get_expected_settings,
     get_invalid_scene_settings,
     get_all_top_names,
+    get_backdrop_top_nodes,
+    parse_node_suffix,
     get_palettes_paths,
     unzip_scene_file,
 )
@@ -83,6 +85,8 @@ __all__ = [
     "get_expected_settings",
     "get_invalid_scene_settings",
     "get_all_top_names",
+    "get_backdrop_top_nodes",
+    "parse_node_suffix",
     "get_palettes_paths",
     "unzip_scene_file",
 
